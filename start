@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs
+import cgi
+from tools.keysim import Sim 
+
+webpage = open("Index.html", "r").read()
+print(webpage)
+
+s = Sim()
+
+
+class GP(BaseHTTPRequestHandler):
+    def _set_headers(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/html')
+        self.end_headers()
+    def do_HEAD(self):
+        self._set_headers()
+    def do_GET(self):
+        self._set_headers()
+        print( self.path)
+        print( parse_qs(self.path[2:]))
+        #self.wfile.write("<html><body><h1>Get Request Received!</h1></body></html>")
+        self.wfile.write(webpage.encode())
+    def do_POST(self):
+        self._set_headers()
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={'REQUEST_METHOD': 'POST'}
+        )
+        val = (form.getvalue("key"))
+        
+        command = {
+                "left": s.pressLeft,
+                "right": s.pressRight,
+                "up":   lambda: s.tap(s.k.up_key),
+                "down":   lambda: s.tap(s.k.down_key),
+                }
+        selected = command.get(val, lambda: s.k.tap_key(val))
+
+        print(selected())
+        
+        #self.wfile.write("<html><body><h1>POST Request Received!</h1></body></html>")
+
+def run(server_class=HTTPServer, handler_class=GP, port=8088):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print ('Server running at localhost:8088...')
+    httpd.serve_forever()
+
+run()
