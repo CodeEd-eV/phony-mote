@@ -1,6 +1,10 @@
 # phony-mote
 Remotely control your computer with another device. Can be phone, tablet or other devices that are able to open a website.
 
+The interface of the remote is shown below. If there is anyone willing to improve the interface, please let me know! Feel free to submit pull requests!
+
+![](fig/remote.jpg)
+
 ## Getting started
 1. ``git clone git@github.com:CodeEd-eV/phony-mote.git``
 2. ``cd phony-mote``
