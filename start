@@ -6,7 +6,6 @@ import cgi
 from tools.keysim import Sim 
 
 webpage = open("Index.html", "r").read()
-print(webpage)
 
 s = Sim()
 
@@ -31,7 +30,10 @@ class GP(BaseHTTPRequestHandler):
             headers=self.headers,
             environ={'REQUEST_METHOD': 'POST'}
         )
+        print("val")
         val = (form.getvalue("key"))
+
+        print(val)
         
         command = {
                 "left": s.pressLeft,

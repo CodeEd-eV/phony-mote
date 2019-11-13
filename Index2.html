@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate"/><meta http-equiv="Pragma" content="no-cache"/><meta http-equiv="Expires" content="0"/>
+        <title>Phony-Mote</title>
+    </head>
+    <body class="bg-dark text-white">
+<style>
+
+.icon{
+	width: 50px;
+	height: 50px;
+	font-size:50px!important;
+    color: white;
+}
+#qr{
+	margin-left:25%;
+	width: 50%;
+}
+
+.flex-auto{
+flex:auto;
+width:30%;
+margin: 1px;
+height: 80px;
+}
+
+.checkbox{
+width:50px;
+height:50px;
+}
+
+</style>
+<script type="text/javascript" src="/static/jquery-3.4.1.min.js"></script>
+
+<script type="text/javascript">
+
+const simulate = (keyval)=>{
+    const data = {key: keyval}
+    fetch("/simulate",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "POST",
+        body: JSON.stringify(data) 
+    }).then(res => {console.log("Request complete! response:", res)})
+    return
+} 
+
+
+const enterText = ()=>{
+    const text = $("#keyboardtext").val()
+        const data = {text: text}
+    fetch("/text",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "POST",
+        body: JSON.stringify(data) 
+    }).then(res => {console.log("Request complete! response:", res);setTimeout( function(){screenshot()}, 100 );
+    })
+    return
+} 
+const click = (pos_x,pos_y)=>{
+    const data = {posx: pos_x, posy: pos_y}
+    fetch("/click",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "POST",
+        body: JSON.stringify(data) 
+    }).then(res => {
+        console.log("[click] executed");
+        setTimeout( function(){screenshot()}, 100 )
+    })
+    return
+} 
+
+const screenshot = () => {
+    fetch("/shot",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "GET",
+    }).then(
+        res => {
+            setTimeout(function(){ 
+                document.getElementById("imgscreenshot").src="/static/shot.png?random="+new Date().getTime();
+                console.log("[screenshot] updated")
+            }, 100);
+            console.log("[screenshot] complete")
+        })
+    return
+}
+var updateInterval = 0;
+
+const toggleStream = (cb) => {
+    console.log("stream " + cb.checked)
+        if (cb.checked === true){
+            updateRate = parseInt($("#updaterate")[0].value);
+
+            updateRate = Number.isInteger(updateRate) && updateRate > 10 ? updateRate : 500;
+
+            console.log("rate:"+updateRate);
+            updateInterval = setInterval(()=>{screenshot()}, updateRate);
+        }else{
+            clearInterval(updateInterval);
+        }
+}
+
+var keyboardOn = 0;
+const toggleKeyboard = ()=>{
+    if ( $( "#keyboard" ).is( ":hidden" ) ) {
+        $( "#keyboard" ).slideDown( "fast" );
+    } else {
+        $( "#keyboard" ).slideUp("fast");
+    }
+}
+
+$(document).ready(function() {
+    $('#combobox1').combobox();
+
+
+    var lastClick = Date.now();
+    var x = 0;
+    var y = 0;
+    const minClickInterval = 0.5;
+    $("#keyboardtext").on('keyup', function (e) {
+        if (e.keyCode === 13) {
+            enterText()
+        }
+    });
+
+    $("#imgscreenshot").on("mousedown", function(event) {
+        x = event.pageX - this.offsetLeft;
+        y = event.pageY - this.offsetTop;
+        console.log("mdown")
+            lastClick = Date.now()
+    });
+    $("#imgscreenshot").on("mouseup", function(event) {
+        console.log("mup")
+            if (((Date.now() - lastClick) / 1000) < minClickInterval){
+                click(x,y);
+            }
+    });
+});
+
+</script>
+<link rel="stylesheet" href="/static/bootstrap.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<link rel="stylesheet" href="/static/bootstrap-combobox.css">
+<script type="text/javascript" src="/static/bootstrap-combobox.js"></script>
+
+<div class="col col-lg-12">
+    <ul class="nav nav-tabs" style="display:flex">
+        <!-- add data-toggle attribute to the anchors -->
+        <li class="active" style="flex:auto"><a data-toggle="tab" href="#home"><i class="material-icons icon">home</i></a></li>
+        <li style="flex:auto"><a data-toggle="tab" href="#youtube"><img src="/static/youtube.png" class="icon" alt="Italian Trulli"></a></li>
+        <li style="flex:auto"><a data-toggle="tab" href="#netflix"><img src="/static/netflix.png" class="icon" alt="Italian Trulli"></a></li>
+        <li style="flex:auto"><a data-toggle="tab" href="#mouse" onclick="screenshot()"><i class="material-icons icon">mouse</i></a></li>
+        <li style="flex:auto"><a onclick="toggleKeyboard()" data-toggle="tab" href="#"><i class="material-icons icon">keyboard</i></a></li>
+    </ul>
+    <div id="keyboard" style="display:none">
+        <h3>Keyboard</h3>
+        <div class="input-group mb-3">
+            <input onsubmit="enterText()" id="keyboardtext" type="text" class="form-control" placeholder="Link" aria-label="Link" aria-describedby="button-addon2">
+            <div class="input-group-append">
+                <button 
+                 onclick="enterText()"
+                 class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">search</i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-content">
+        <div id="home" class="tab-pane active">
+            <h3>QR</h3>
+            <img src="/static/qr.jpeg" id="qr" alt="Italian Trulli">
+            <p>Some content.</p>
+        </div>
+        <div id="youtube" class="tab-pane fade">
+            <h3>Youtube</h3>
+            <div class="row" style="display:flex;align-items:center">
+
+                <button class="btn btn-danger flex-auto" onclick="simulate('j')">J</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('up')">UP</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('k')">K</button>
+            </div>
+            <div class="row" style="display:flex;align-items:center">
+
+                <button class="btn btn-danger flex-auto" onclick="simulate('left')">left</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('down')">down</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('right')">right</button>
+            </div>
+            <div class="row" style="display:flex;align-items:center">
+
+                <button class="btn btn-danger flex-auto" onclick="simulate('space')">space</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('m')">mute</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('f')">full</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('Escape')">ESC</button>
+            </div>
+
+            <p>Some content in menu 1.</p>
+        </div>
+        <div id="netflix" class="tab-pane fade">
+            <h3>Netflix</h3>
+            <div class="row" style="display:flex;align-items:center">
+
+                <button class="btn btn-danger flex-auto" onclick="simulate('j')" disabled>J</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('up')">UP</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('k')" disabled>K</button>
+            </div>
+            <div class="row" style="display:flex;align-items:center">
+
+                <button class="btn btn-danger flex-auto" onclick="simulate('left')">left</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('down')">down</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('right')">right</button>
+            </div>
+            <div class="row" style="display:flex;align-items:center">
+
+                <button class="btn btn-danger flex-auto" onclick="simulate('space')">space</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('m')">mute</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('f')">full</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('Escape')">ESC</button>
+            </div>
+        </div>
+
+        <div id="mouse" class="tab-pane fade">
+            <h3>Mouse</h3>
+            <div style="display:flex;align-items:center">
+                <div>
+                    <input onclick="toggleStream(this)" class="checkbox" type="checkbox" aria-label="Checkbox for following text input">
+                </div>
+
+                <div style="font-size:30px;margin-left:50px;">
+                    Streaming (<input id="updaterate" class="bg-dark text-white" type="text"/>)
+                    )
+                </div>
+            </div>
+            <img src="/static/shot.png" id="imgscreenshot" alt="Screenshot">      
+        </div>
+    </div>
+</div>
+<select id="combobox1" class="combobox d-none">
+    <option></option>
+    <option value="PA">Pennsylvania</option>
+    <option value="CT">Connecticut</option>
+    <option value="NY">New York</option>
+    <option value="MD">Maryland</option>
+    <option value="VA">Virginia</option>
+</select>
+    </body>
+</html>

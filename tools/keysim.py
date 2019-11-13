@@ -10,6 +10,9 @@ class Sim:
         x_dim, y_dim = self.m.screen_size()
         self.m.click(int(x_dim/2), int(y_dim/2), 1)
 
+    def click(self, x, y):
+        self.m.click(int(x), int(y), 1)
+
     def pressLeft(self):
         self.tap(self.k.left_key)
         return "left"

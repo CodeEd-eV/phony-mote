@@ -6,6 +6,11 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+pyuserinput = "*"
+flask = "*"
+qrcode = "*"
+pillow = "*"
+pyautogui = "*"
 
 [requires]
 python_version = "3.6"
