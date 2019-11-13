@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+
 from flask import Flask, request, jsonify
 from tools.keysim import Sim 
 
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
-webpage = open("Index2.html", "r").read()
+webpage = open("Index_1.html", "r").read()
 
 s = Sim()
 

@@ -31,6 +31,12 @@ width:50px;
 height:50px;
 }
 
+#containerscreenshot{
+border: red solid;
+border-width: 2px 0px 2px 0px;
+margin-top:10px;
+}
+
 </style>
 <script type="text/javascript" src="/static/jquery-3.4.1.min.js"></script>
 
@@ -66,7 +72,7 @@ const click = (pos_x,pos_y)=>{
         body: JSON.stringify(data) 
     }).then(res => {
         console.log("[click] executed");
-        setTimeout( function(){screenshot()}, 100 )
+        setTimeout( function(){screenshot()}, 10 )
     })
     return
 } 
@@ -80,7 +86,7 @@ const screenshot = () => {
             setTimeout(function(){ 
                 document.getElementById("imgscreenshot").src="/static/shot.png?random="+new Date().getTime();
                 console.log("[screenshot] updated")
-            }, 100);
+            }, 0);
             console.log("[screenshot] complete")
         })
     return
@@ -100,6 +106,8 @@ const toggleStream = (cb) => {
             clearInterval(updateInterval);
         }
 }
+var imgwidth = 0;
+var imgheight = 0;
 
 var keyboardOn = 0;
 const toggleKeyboard = ()=>{
@@ -124,6 +132,12 @@ $(document).ready(function() {
         }
     });
 
+    imgwidth = $('#imgscreenshot')[0].width;
+    imgheight = $('#imgscreenshot')[0].height+4;
+
+    $('#containerscreenshot').css('width', imgwidth + 'px');
+    $('#containerscreenshot').css('height', imgheight + 'px');
+
     $("#imgscreenshot").on("mousedown", function(event) {
         x = event.pageX - this.offsetLeft;
         y = event.pageY - this.offsetTop;
@@ -147,7 +161,7 @@ $(document).ready(function() {
 <link rel="stylesheet" href="/static/bootstrap-combobox.css">
 <script type="text/javascript" src="/static/bootstrap-combobox.js"></script>
 
-<div class="col col-lg-12">
+<div class="wrapper">
     <ul class="nav nav-tabs" style="display:flex">
         <!-- add data-toggle attribute to the anchors -->
         <li class="active" style="flex:auto"><a data-toggle="tab" href="#home"><i class="material-icons icon">home</i></a></li>
@@ -232,8 +246,13 @@ $(document).ready(function() {
                     Streaming (<input id="updaterate" class="bg-dark text-white" type="text"/>)
                     )
                 </div>
+                <div style="font-size:30px;margin-left:50px;">
+                    <button onclick="screenshot()" class="btn btn-success"><i class="material-icons">refresh</i></button>
+                </div>
             </div>
+            <div id="containerscreenshot">
             <img src="/static/shot.png" id="imgscreenshot" alt="Screenshot">      
+            </div>
         </div>
     </div>
 </div>
