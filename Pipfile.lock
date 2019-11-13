@@ -141,15 +141,13 @@
         },
         "pyperclip": {
             "hashes": [
-                "sha256:4bfd6ef74e2be74e0847b18321cb6865823db59c9ccafb9743a2d6bf73230e73",
                 "sha256:979325468ccf682104d5dcaf753f869868100631301d3e72f47babdea5700d1c"
             ],
             "version": "==1.7.0"
         },
         "pyrect": {
             "hashes": [
-                "sha256:3b2fa7353ce32a11aa6b0a15495968d2a763423c8947ae248b92c037def4e202",
-                "sha256:7cbacfd24712566a70c63d4031cef9293ec688c8f0777c3a8679746a0c5fc84b"
+                "sha256:3b2fa7353ce32a11aa6b0a15495968d2a763423c8947ae248b92c037def4e202"
             ],
             "version": "==0.1.4"
         },
