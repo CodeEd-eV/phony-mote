@@ -72,7 +72,7 @@ const click = (pos_x,pos_y)=>{
         body: JSON.stringify(data) 
     }).then(res => {
         console.log("[click] executed");
-        setTimeout( function(){screenshot()}, 10 )
+        setTimeout( function(){screenshot()}, 0 )
     })
     return
 } 
@@ -83,11 +83,31 @@ const screenshot = () => {
         method: "GET",
     }).then(
         res => {
-            setTimeout(function(){ 
-                document.getElementById("imgscreenshot").src="/static/shot.png?random="+new Date().getTime();
-                console.log("[screenshot] updated")
-            }, 0);
-            console.log("[screenshot] complete")
+            //const ctx_img  = document.getElementById("imgscreenshot")
+            //ctx_img.src="/static/shot.png?random="+new Date().getTime();
+
+            console.log(res)
+
+            const img  = $("#imgscreenshot")
+            const img2 = $("#imgscreenshot2")
+
+            let selected = null;
+            let unselected = null;
+
+            if (img.css("display") == "none" ){
+                selected = img;
+                unselected = img2;
+            }else{
+                selected = img2;
+                unselected = img;
+            }
+            console.log(selected)
+
+            selected[0].src = "/static/shot.jpeg?random="+new Date().getTime();
+            //img.onload = () => { $("#myCanvas")[0].getContext("2d").drawImage(img, 0,0,imgwidth,imgheight); console.log("[canvas] draw");}
+            selected[0].onload = () => { selected.css("display", "block"); unselected.css("display","none");}
+
+            console.log("[screenshot] updated")
         })
     return
 }
@@ -98,7 +118,7 @@ const toggleStream = (cb) => {
         if (cb.checked === true){
             updateRate = parseInt($("#updaterate")[0].value);
 
-            updateRate = Number.isInteger(updateRate) && updateRate > 10 ? updateRate : 500;
+            updateRate = Number.isInteger(updateRate) && updateRate >= 20 ? updateRate : 500;
 
             console.log("rate:"+updateRate);
             updateInterval = setInterval(()=>{screenshot()}, updateRate);
@@ -117,10 +137,8 @@ const toggleKeyboard = ()=>{
         $( "#keyboard" ).slideUp("fast");
     }
 }
-
 $(document).ready(function() {
     $('#combobox1').combobox();
-
 
     var lastClick = Date.now();
     var x = 0;
@@ -137,14 +155,18 @@ $(document).ready(function() {
 
     $('#containerscreenshot').css('width', imgwidth + 'px');
     $('#containerscreenshot').css('height', imgheight + 'px');
+    
+    $('#myCanvas').attr("width" ,imgwidth + 'px');
+    $('#myCanvas').attr("height", imgheight + 'px');
 
-    $("#imgscreenshot").on("mousedown", function(event) {
+
+    $("#myCanvas").on("mousedown", function(event) {
         x = event.pageX - this.offsetLeft;
         y = event.pageY - this.offsetTop;
         console.log("mdown")
             lastClick = Date.now()
     });
-    $("#imgscreenshot").on("mouseup", function(event) {
+    $("#myCanvas").on("mouseup", function(event) {
         console.log("mup")
             if (((Date.now() - lastClick) / 1000) < minClickInterval){
                 click(x,y);
@@ -250,9 +272,14 @@ $(document).ready(function() {
                     <button onclick="screenshot()" class="btn btn-success"><i class="material-icons">refresh</i></button>
                 </div>
             </div>
+
             <div id="containerscreenshot">
-            <img src="/static/shot.png" id="imgscreenshot" alt="Screenshot">      
+                <img src="/static/shot.jpeg" style="display:none" id="imgscreenshot" alt="Screenshot">      
+                <img src="/static/shot.jpeg" style="display:none" id="imgscreenshot2" alt="Screenshot">      
+                <canvas id="myCanvas" width="240" height="297" style="border:1px solid #d3d3d3;">
+                </canvas>
             </div>
+
         </div>
     </div>
 </div>

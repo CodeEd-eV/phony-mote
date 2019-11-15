@@ -20,8 +20,8 @@ import os
 @app.route("/shot")
 def screenshot():
     print("[screenshot] stored")
-    pyautogui.screenshot().save(os.path.join("static","shot.png"))
-    return "received"
+    pyautogui.screenshot().save(os.path.join("static","shot.jpeg"))
+    return jsonify(msg= "received")
 
 @app.route("/click", methods=["POST"])
 def click():
