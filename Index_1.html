@@ -34,11 +34,15 @@ height:50px;
 #containerscreenshot{
 border: red solid;
 border-width: 2px 0px 2px 0px;
-margin-top:10px;
+background:beige;
+}
+.imgscreenshot{
+    position: absolute;
 }
 
 </style>
 <script type="text/javascript" src="/static/jquery-3.4.1.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
 
 <script type="text/javascript">
 
@@ -54,8 +58,8 @@ const simulate = (keyval)=>{
 
 
 const enterText = ()=>{
-    const text = $("#keyboardtext").val()
-        const data = {text: text}
+    const text = $("#keyboardtext").val();
+    const data = {text: text}
     fetch("/text",{
         headers: { "Content-Type": "application/json; charset=utf-8" },
         method: "POST",
@@ -77,6 +81,32 @@ const click = (pos_x,pos_y)=>{
     return
 } 
 
+const scroll = (v,h)=>{
+    const data = {vertical: v*20/(imgheight), horizontal: h*20/(imgwidth*2)}
+    fetch("/scroll",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "POST",
+        body: JSON.stringify(data) 
+    }).then(res => {
+        console.log(res)
+        //setTimeout( function(){screenshot()}, 0 )
+    })
+    return
+} 
+
+const stream = (rate) => {
+
+    socket.emit('stream', rate);
+
+    fetch("/stream",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "GET",
+    }).then(
+        res => {
+            return res;
+        }).then((data)=>{console.log(data)})
+}
+
 const screenshot = () => {
     fetch("/shot",{
         headers: { "Content-Type": "application/json; charset=utf-8" },
@@ -86,10 +116,8 @@ const screenshot = () => {
             //const ctx_img  = document.getElementById("imgscreenshot")
             //ctx_img.src="/static/shot.png?random="+new Date().getTime();
 
-            console.log(res)
-
-            const img  = $("#imgscreenshot")
-            const img2 = $("#imgscreenshot2")
+            const img  = $("#imgscreenshot0");
+            const img2 = $("#imgscreenshot1");
 
             let selected = null;
             let unselected = null;
@@ -101,31 +129,29 @@ const screenshot = () => {
                 selected = img2;
                 unselected = img;
             }
-            console.log(selected)
 
-            selected[0].src = "/static/shot.jpeg?random="+new Date().getTime();
+                selected[0].src = "/static/shot.jpeg?random="+new Date().getTime();
             //img.onload = () => { $("#myCanvas")[0].getContext("2d").drawImage(img, 0,0,imgwidth,imgheight); console.log("[canvas] draw");}
             selected[0].onload = () => { selected.css("display", "block"); unselected.css("display","none");}
 
-            console.log("[screenshot] updated")
         })
-    return
+        return
 }
 var updateInterval = 0;
 
-const toggleStream = (cb) => {
-    console.log("stream " + cb.checked)
-        if (cb.checked === true){
-            updateRate = parseInt($("#updaterate")[0].value);
+const toggleStream2 = (cb) => {
+    if (cb.checked === true){
+        updateRate = parseInt($("#updaterate")[0].value);
 
-            updateRate = Number.isInteger(updateRate) && updateRate >= 20 ? updateRate : 500;
+        updateRate = Number.isInteger(updateRate) && updateRate >= 1 ? updateRate : 500;
 
-            console.log("rate:"+updateRate);
-            updateInterval = setInterval(()=>{screenshot()}, updateRate);
-        }else{
-            clearInterval(updateInterval);
-        }
+        updateInterval = setInterval(()=>{screenshot()}, updateRate);
+    }else{
+        clearInterval(updateInterval);
+    }
 }
+
+
 var imgwidth = 0;
 var imgheight = 0;
 
@@ -137,7 +163,118 @@ const toggleKeyboard = ()=>{
         $( "#keyboard" ).slideUp("fast");
     }
 }
+
+var socket = io();
+socket.on('connect', function() {
+        socket.emit('my event', {data: 'I\'m connected!'});
+});
+
+var last_request = Date.now();
+
+var imgqueue = [];
+var bufferPTR  = 0;
+var displayPTR = 0;
+var displayTimestamp = Date.now();
+var renderTimestamp = Date.now();
+
+function renderLoop(){
+
+    renderTimestamp = Date.now();
+
+    if (updateRate == 0){return}
+
+    const lag = last_request - displayTimestamp;
+
+    //$('#mouseh3')[0].innerText = ("lag " + lag);
+    console.log("lag"+lag)
+
+    let nextPTR = (displayPTR + 1) % imgqueue.length;
+    
+
+    if (imgqueue[nextPTR].complete && imgqueue[nextPTR].timestamp > displayTimestamp ){
+        imgqueue[displayPTR].style.display = "none";
+        imgqueue[nextPTR].style.display = "block";
+        displayTimestamp = imgqueue[nextPTR].timestamp;
+
+        console.log("D: " + nextPTR);
+        displayPTR = nextPTR;
+
+        const factor = 1/(lag/(updateRate*4)+1)
+
+        timeLeft = updateRate - (Date.now() - renderTimestamp);
+        setTimeout( renderLoop, timeLeft > 0 ? timeLeft*factor : 0 )
+    }else{
+        setTimeout( renderLoop, updateRate*0.1 )
+    }
+    //        displayTimestamp = this.timestamp;
+    //        imgqueue[this.idx].style.display = "block";
+    //        imgqueue[displayPTR].style.display = "none";
+    //        displayPTR = this.idx;
+
+}
+
+var updateRate = 0;
+
+const toggleStream = (cb) => {
+    console.log("stream " + cb.checked);
+
+    if (cb.checked){
+        updateRate = parseInt($("#updaterate")[0].value);
+        bufferPTR  = 0;
+        displayPTR = 0;
+        last_request = Date.now();
+        stream(updateRate);
+
+        renderLoop();
+    }else{
+        updateRate = 0;
+        //clearInterval(updateInterval);
+        stream(0);
+    }
+}
+
+
+
+socket.on('image', function(data){
+
+    let img_str = new TextDecoder().decode(data);
+
+    bufferPTR = (bufferPTR + 1) % imgqueue.length;
+
+    console.log("B: " + bufferPTR);
+    imgqueue[bufferPTR].timestamp = Date.now();
+    last_request = imgqueue[bufferPTR].timestamp;
+    imgqueue[bufferPTR].src = 'data:image/jpeg;base64,' + img_str;
+    const t1 = Date.now();
+    imgqueue[bufferPTR].onload = function(){
+        // console.log("currently displaying: "+ displayPTR);
+        // if ( this.timestamp > displayTimestamp ){
+        //     console.log("switch to: "+ this.idx);
+        //     console.log(this.complete);
+        //     displayTimestamp = this.timestamp;
+        //     imgqueue[this.idx].style.display = "block";
+        //     imgqueue[displayPTR].style.display = "none";
+        //     displayPTR = this.idx;
+        // }
+        //$('#mouseh3')[0].innerText = ("loaded" + (Date.now() - t1));
+    };
+
+    //img.onload = () => { $("#myCanvas")[0].getContext("2d").drawImage(img, 0,0,imgwidth,imgheight); console.log("[canvas] draw");}
+    //$("#myCanvas")[0].getContext("2d").drawImage(img, 0,0,imgwidth,imgheight);
+    console.log("[canvas] draw");
+})
+
+
 $(document).ready(function() {
+
+    var i;
+    for ( i = 0; i < 10; i++){
+        let imgelement = document.getElementById("imgscreenshot" + i + "");
+        imgelement.idx = i;
+        imgelement.displayTimestamp = Date.now();
+        imgqueue.push(imgelement);
+    }
+
     $('#combobox1').combobox();
 
     var lastClick = Date.now();
@@ -145,36 +282,95 @@ $(document).ready(function() {
     var y = 0;
     const minClickInterval = 0.5;
     $("#keyboardtext").on('keyup', function (e) {
+        const text = $("#keyboardtext")[0].value
+        console.log($("#keyboardtext")[0].value)
         if (e.keyCode === 13) {
-            enterText()
+            //$("#keyboardtext")
+            simulate("Return")
+        }else if(e.keyCode === 8){
+            simulate("BackSpace")
+        }else{
+            simulate(text[text.length - 1])
         }
     });
 
-    imgwidth = $('#imgscreenshot')[0].width;
-    imgheight = $('#imgscreenshot')[0].height+4;
+    imgwidth = $('#imgscreenshot0')[0].width;
+    imgheight = $('#imgscreenshot0')[0].height+4;
 
     $('#containerscreenshot').css('width', imgwidth + 'px');
     $('#containerscreenshot').css('height', imgheight + 'px');
-    
+
     $('#myCanvas').attr("width" ,imgwidth + 'px');
     $('#myCanvas').attr("height", imgheight + 'px');
+    
+    var mousemove = false;
+    var mouse_x = -1;
+    var mouse_y = -1;
+
+    $("#scrollbar").on("touchstart mousedown", function(event) {
+        event.preventDefault()
+        mousemove = true;
+
+        if (event.originalEvent.touches){
+            touch = event.originalEvent.touches[0]
+            mouse_x = touch.pageX
+            mouse_y = touch.pageY
+        }else{
+            mouse_x = event.pageX;
+            mouse_y = event.pageY;
+        }
+
+        $('#mouseh3')[0].innerText = ("mdown " + mouse_x);
+    });
+    $("#scrollbar").on("touchend mouseup", function(event) {
+        if (!mousemove){return}
+
+        event.preventDefault()
+        let pos_x = mouse_x;
+        let pos_y = mouse_y;
+
+        if (event.changedTouches){
+            touch = event.changedTouches[0]
+            pos_x = touch.pageX
+            pos_y = touch.pageY
+        }else{
+            pos_x = event.pageX;
+            pos_y = event.pageY;
+        }
+
+        const move_x = pos_x - mouse_x;
+        const move_y = pos_y - mouse_y;
+        
+        mouse_x = pos_x;
+        mouse_y = pos_y;
+        $('#mouseh3')[0].innerText = ("mup " + pos_y);
+        scroll(-move_y, 0);
+
+        console.log(move_x + ";" + move_y);
+        mousemove = false; 
+        //$('#mouseh3')[0].innerText = ("mup " + move_y);
+    });
+    
+    $("#scrollbar").on("touchmove mousemove", function(event) {
+    });
 
 
-    $("#myCanvas").on("mousedown", function(event) {
+    $(".imgscreenshot").on("mousedown", function(event) {
         x = event.pageX - this.offsetLeft;
         y = event.pageY - this.offsetTop;
         console.log("mdown")
             lastClick = Date.now()
     });
-    $("#myCanvas").on("mouseup", function(event) {
+    $(".imgscreenshot").on("mouseup", function(event) {
         console.log("mup")
             if (((Date.now() - lastClick) / 1000) < minClickInterval){
                 click(x,y);
             }
     });
 });
-
 </script>
+
+
 <link rel="stylesheet" href="/static/bootstrap.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
@@ -189,7 +385,7 @@ $(document).ready(function() {
         <li class="active" style="flex:auto"><a data-toggle="tab" href="#home"><i class="material-icons icon">home</i></a></li>
         <li style="flex:auto"><a data-toggle="tab" href="#youtube"><img src="/static/youtube.png" class="icon" alt="Italian Trulli"></a></li>
         <li style="flex:auto"><a data-toggle="tab" href="#netflix"><img src="/static/netflix.png" class="icon" alt="Italian Trulli"></a></li>
-        <li style="flex:auto"><a data-toggle="tab" href="#mouse" onclick="screenshot()"><i class="material-icons icon">mouse</i></a></li>
+        <li style="flex:auto"><a data-toggle="tab" href="#mouse" onclick="screenshot()"><i class="material-icons icon">desktop_windows</i></a></li>
         <li style="flex:auto"><a onclick="toggleKeyboard()" data-toggle="tab" href="#"><i class="material-icons icon">keyboard</i></a></li>
     </ul>
     <div id="keyboard" style="display:none">
@@ -213,7 +409,6 @@ $(document).ready(function() {
         <div id="youtube" class="tab-pane fade">
             <h3>Youtube</h3>
             <div class="row" style="display:flex;align-items:center">
-
                 <button class="btn btn-danger flex-auto" onclick="simulate('j')">J</button>
                 <button class="btn btn-danger flex-auto" onclick="simulate('up')">UP</button>
                 <button class="btn btn-danger flex-auto" onclick="simulate('k')">K</button>
@@ -240,7 +435,7 @@ $(document).ready(function() {
 
                 <button class="btn btn-danger flex-auto" onclick="simulate('j')" disabled>J</button>
                 <button class="btn btn-danger flex-auto" onclick="simulate('up')">UP</button>
-                <button class="btn btn-danger flex-auto" onclick="simulate('k')" disabled>K</button>
+                <button class="btn btn-danger flex-auto" onclick="simulate('l')" disabled>K</button>
             </div>
             <div class="row" style="display:flex;align-items:center">
 
@@ -258,7 +453,7 @@ $(document).ready(function() {
         </div>
 
         <div id="mouse" class="tab-pane fade">
-            <h3>Mouse</h3>
+            <h3 id="mouseh3">Mouse</h3>
             <div style="display:flex;align-items:center">
                 <div>
                     <input onclick="toggleStream(this)" class="checkbox" type="checkbox" aria-label="Checkbox for following text input">
@@ -273,11 +468,22 @@ $(document).ready(function() {
                 </div>
             </div>
 
+            <div style="display:flex;margin-top:10px">
+
+            <div id="scrollbar" style="width:100px;display:flex;justify-content: center;align-items:center;background:darkcyan;"><i class="material-icons">unfold_more</i></div>
+
             <div id="containerscreenshot">
-                <img src="/static/shot.jpeg" style="display:none" id="imgscreenshot" alt="Screenshot">      
-                <img src="/static/shot.jpeg" style="display:none" id="imgscreenshot2" alt="Screenshot">      
-                <canvas id="myCanvas" width="240" height="297" style="border:1px solid #d3d3d3;">
-                </canvas>
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot0" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot1" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot2" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot3" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot4" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot5" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot6" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot7" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot8" alt="Screenshot">      
+                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot9" alt="Screenshot">      
+            </div>
             </div>
 
         </div>

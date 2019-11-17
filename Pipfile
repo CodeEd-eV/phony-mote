@@ -11,6 +11,8 @@ flask = "*"
 qrcode = "*"
 pillow = "*"
 pyautogui = "*"
+flask-socketio = "*"
+numpy = "*"
 
 [requires]
 python_version = "3.6"
