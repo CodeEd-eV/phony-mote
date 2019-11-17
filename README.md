@@ -3,7 +3,11 @@ Remotely control your computer with another device. Can be phone, tablet or othe
 
 The interface of the remote is shown below. If there is anyone willing to improve the interface, please let me know! Feel free to submit pull requests!
 
-![](fig/remote.jpg)
+# Remote Setup
+![](fig/output2.gif)
+------------------
+# Remote Streaming mode (experimental)
+![](fig/output.gif)
 
 ## Getting started
 1. ``git clone git@github.com:CodeEd-eV/phony-mote.git``

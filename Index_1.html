@@ -258,11 +258,6 @@ function renderLoop(){
     }else{
         setTimeout( renderLoop, updateRate*0.1 )
     }
-    //        displayTimestamp = this.timestamp;
-    //        imgqueue[this.idx].style.display = "block";
-    //        imgqueue[displayPTR].style.display = "none";
-    //        displayPTR = this.idx;
-
 }
 
 var updateRate = 0;
@@ -280,12 +275,9 @@ const toggleStream = (cb) => {
         renderLoop();
     }else{
         updateRate = 0;
-        //clearInterval(updateInterval);
         stream(0);
     }
 }
-
-
 
 socket.on('image', function(data){
 
@@ -298,23 +290,10 @@ socket.on('image', function(data){
     last_request = imgqueue[bufferPTR].timestamp;
     imgqueue[bufferPTR].src = 'data:image/jpeg;base64,' + img_str;
     const t1 = Date.now();
-    imgqueue[bufferPTR].onload = function(){
-        // console.log("currently displaying: "+ displayPTR);
-        // if ( this.timestamp > displayTimestamp ){
-        //     console.log("switch to: "+ this.idx);
-        //     console.log(this.complete);
-        //     displayTimestamp = this.timestamp;
-        //     imgqueue[this.idx].style.display = "block";
-        //     imgqueue[displayPTR].style.display = "none";
-        //     displayPTR = this.idx;
-        // }
-        //$('#mouseh3')[0].innerText = ("loaded" + (Date.now() - t1));
-    };
-
     //img.onload = () => { $("#myCanvas")[0].getContext("2d").drawImage(img, 0,0,imgwidth,imgheight); console.log("[canvas] draw");}
     //$("#myCanvas")[0].getContext("2d").drawImage(img, 0,0,imgwidth,imgheight);
     console.log("[canvas] draw");
-})
+});
 
 var last_scroll = Date.now();
 
@@ -344,7 +323,7 @@ $(document).ready(function() {
 
     });
 
-    
+
 
 
     var i;
@@ -363,32 +342,35 @@ $(document).ready(function() {
     const minClickInterval = 0.5;
     $("#keyboardtext").on('keyup', function (e) {
         const text = $("#keyboardtext")[0].value
-        console.log($("#keyboardtext")[0].value)
-        if (e.keyCode === 13) {
-            //$("#keyboardtext")
-            simulate("Return")
-        }else if(e.keyCode === 8){
-            simulate("BackSpace")
-        }else{
-            simulate(text[text.length - 1])
-        }
+            console.log($("#keyboardtext")[0].value)
+            if (e.keyCode === 13) {
+                //$("#keyboardtext")
+                simulate("Return")
+            }else if(e.keyCode === 8){
+                simulate("BackSpace")
+            }else{
+                simulate(text[text.length - 1])
+            }
     });
 
     imgwidth = $('#imgscreenshot0')[0].width;
     imgheight = $('#imgscreenshot0')[0].height+4;
-    
-    window.innerWidth
-    $('.cinemabar').css("width", imgwidth + "px")
-    $('.cinemabar').css("height", (imgheight) +"px")
 
-    $('#containerscreenshot').css('width', imgwidth + 'px');
+    window.innerWidth
+        $('.cinemabar').css("width", imgwidth + "px")
+        $('.cinemabar').css("height", (imgheight) +"px")
+
+        $('#containerscreenshot').css('width', imgwidth + 'px');
     $('#containerscreenshot').css('height', imgheight + 'px');
     $('#mousefield').css('width', imgwidth + 'px');
     $('#mousefield').css('height', imgheight + 'px');
 
+    $('#mouseh3')[0].innerText = imgheight;
+
+
     $('#myCanvas').attr("width" ,imgwidth + 'px');
     $('#myCanvas').attr("height", imgheight + 'px');
-    
+
     var scrolling = false;
     var mousemove = false;
     var mouse_x = -1;
@@ -396,12 +378,12 @@ $(document).ready(function() {
 
     $("#scrollbar").on("touchstart mousedown", function(event) {
         event.preventDefault()
-        mousemove = true;
+            mousemove = true;
 
         if (event.originalEvent.touches){
             touch = event.originalEvent.touches[0]
-            mouse_x = touch.pageX
-            mouse_y = touch.pageY
+                mouse_x = touch.pageX
+                mouse_y = touch.pageY
         }else{
             mouse_x = event.pageX;
             mouse_y = event.pageY;
@@ -414,13 +396,13 @@ $(document).ready(function() {
         if (!mousemove){return}
 
         event.preventDefault()
-        let pos_x = mouse_x;
+            let pos_x = mouse_x;
         let pos_y = mouse_y;
 
         if (event.changedTouches){
             touch = event.changedTouches[0]
-            pos_x = touch.pageX
-            pos_y = touch.pageY
+                pos_x = touch.pageX
+                pos_y = touch.pageY
         }else{
             pos_x = event.pageX;
             pos_y = event.pageY;
@@ -428,7 +410,7 @@ $(document).ready(function() {
 
         const move_x = pos_x - mouse_x;
         const move_y = pos_y - mouse_y;
-        
+
         mouse_x = pos_x;
         mouse_y = pos_y;
         $('#mouseh3')[0].innerText = ("mup " + pos_y);
@@ -438,7 +420,7 @@ $(document).ready(function() {
         mousemove = false; 
         //$('#mouseh3')[0].innerText = ("mup " + move_y);
     });
-    
+
     $("#scrollbar").on("touchmove mousemove", function(event) {
         if (!mousemove) {return}
         event.preventDefault();
@@ -452,8 +434,8 @@ $(document).ready(function() {
 
         if (event.changedTouches){
             touch = event.changedTouches[0]
-            pos_x = touch.pageX
-            pos_y = touch.pageY
+                pos_x = touch.pageX
+                pos_y = touch.pageY
         }else{
             pos_x = event.pageX;
             pos_y = event.pageY;
@@ -481,7 +463,7 @@ $(document).ready(function() {
         x = event.pageX - $('#containerscreenshot')[0].offsetLeft;
         y = event.pageY - $('#containerscreenshot')[0].offsetTop;
         console.log("mdown" + x + ";" + y)
-        lastClick = Date.now();
+            lastClick = Date.now();
         mousemove = true;
         setTimeout(function(){
             if (mousemove) {
@@ -510,8 +492,8 @@ $(document).ready(function() {
 
             if (event.changedTouches){
                 touch = event.changedTouches[0]
-                pos_x = touch.pageX
-                pos_y = touch.pageY
+                    pos_x = touch.pageX
+                    pos_y = touch.pageY
             }else{
                 pos_x = event.pageX;
                 pos_y = event.pageY;
@@ -583,11 +565,11 @@ $(document).ready(function() {
                  onclick="enterText()"
                  class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">search</i></button>
                 <button 
-                 onclick="copy()"
-                 class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">file_copy</i></button>
-<button 
-                 onclick="store()"
-                 class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">save</i></button>
+                                                                                       onclick="copy()"
+                                                                                       class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">file_copy</i></button>
+                <button 
+                                                                                                                                                             onclick="store()"
+                                                                                                                                                             class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">save</i></button>
 
             </div>
         </div>
