@@ -13,6 +13,7 @@ pillow = "*"
 pyautogui = "*"
 flask-socketio = "*"
 numpy = "*"
+clipboard = "*"
 
 [requires]
 python_version = "3.6"

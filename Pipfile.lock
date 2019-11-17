@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c680809f621d403c50310e2ba3a41b590dcefe70c37d0665ca0266230e2350b2"
+            "sha256": "71e1b869664a9d852ad6a4470b1f85ddb491a308cde66775f88fed007aac1ab4"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -22,6 +22,13 @@
                 "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"
             ],
             "version": "==7.0"
+        },
+        "clipboard": {
+            "hashes": [
+                "sha256:a72a78e9c9bf68da1c3f29ee022417d13ec9e3824b511559fd2b702b1dd5b817"
+            ],
+            "index": "pypi",
+            "version": "==0.0.4"
         },
         "flask": {
             "hashes": [

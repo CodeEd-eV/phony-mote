@@ -7,6 +7,9 @@
     </head>
     <body class="bg-dark text-white">
 <style>
+body{
+    overscroll-behavior: auto;
+}
 
 .icon{
 	width: 50px;
@@ -14,9 +17,17 @@
 	font-size:50px!important;
     color: white;
 }
+.cinemabar{
+    display:flex;margin-top:10px;
+        background: black;
+}
 #qr{
 	margin-left:25%;
 	width: 50%;
+    padding: 20px;
+}
+#mousefield{
+    position:absolute;touch-action:auto;
 }
 
 .flex-auto{
@@ -35,6 +46,7 @@ height:50px;
 border: red solid;
 border-width: 2px 0px 2px 0px;
 background:beige;
+    position: relative;
 }
 .imgscreenshot{
     position: absolute;
@@ -68,6 +80,45 @@ const enterText = ()=>{
     })
     return
 } 
+
+const copy = ()=>{
+    fetch("/copy",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "GET",
+    }).then(res => {console.log("Request complete! response:", res);
+    })
+    return
+}
+const store = ()=>{
+    fetch("/store",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "GET",
+    }).then(res => {console.log("Request complete! response:", res);
+    })
+    return
+}
+const visit = (link)=>{
+    const data = {link: link}
+    console.log(data)
+    fetch("/visit",{
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            method: "POST",
+            body: JSON.stringify(data) 
+        }).then(res => {console.log("Request complete! response:", res);
+        })
+        return
+}
+const del_bmark = (id)=>{
+    const data = {id: id}
+    console.log(data)
+    fetch("/del",{
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            method: "POST",
+            body: JSON.stringify(data) 
+        }).then(res => {console.log("Request complete! response:", res);
+        })
+    return
+}
 const click = (pos_x,pos_y)=>{
     const data = {posx: pos_x, posy: pos_y}
     fetch("/click",{
@@ -76,13 +127,14 @@ const click = (pos_x,pos_y)=>{
         body: JSON.stringify(data) 
     }).then(res => {
         console.log("[click] executed");
-        setTimeout( function(){screenshot()}, 0 )
+        setTimeout( function(){screenshot()}, 500 )
+        setTimeout( function(){screenshot()}, 2000 )
     })
     return
 } 
 
 const scroll = (v,h)=>{
-    const data = {vertical: v*20/(imgheight), horizontal: h*20/(imgwidth*2)}
+    const data = {vertical: (v*20/(imgheight)).toFixed(0), horizontal: (h*20/(imgwidth*2)).toFixed(0)}
     fetch("/scroll",{
         headers: { "Content-Type": "application/json; charset=utf-8" },
         method: "POST",
@@ -264,8 +316,36 @@ socket.on('image', function(data){
     console.log("[canvas] draw");
 })
 
+var last_scroll = Date.now();
+
 
 $(document).ready(function() {
+
+    fetch("/bmarks",{
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        method: "GET",
+    }).then(res => {
+        console.log("Request complete! response:", res);
+        return res.json();
+    }).then(data => {
+        console.log(data.bookmarks);
+        var i;
+        for (i=0; i<data.bookmarks.length; ++i){
+            $("#bookmark-list").append("<li class='bookmark list-group-item list-group-item-secondary' link='"+data.bookmarks[i]+"' class='list-group-item list-group-item-secondary'>" + data.bookmarks[i] + "<i id="+i+" style='float:right' class='del-bmark material-icons'>delete</i></li>")
+        }
+        $(".bookmark").click(function(){ 
+            visit($(this).attr("link"))
+        })
+        $(".del-bmark").click(function(){ 
+            del_bmark($(this).attr("id"));
+            $(this).parent().remove();
+        })
+
+
+    });
+
+    
+
 
     var i;
     for ( i = 0; i < 10; i++){
@@ -296,13 +376,20 @@ $(document).ready(function() {
 
     imgwidth = $('#imgscreenshot0')[0].width;
     imgheight = $('#imgscreenshot0')[0].height+4;
+    
+    window.innerWidth
+    $('.cinemabar').css("width", imgwidth + "px")
+    $('.cinemabar').css("height", (imgheight) +"px")
 
     $('#containerscreenshot').css('width', imgwidth + 'px');
     $('#containerscreenshot').css('height', imgheight + 'px');
+    $('#mousefield').css('width', imgwidth + 'px');
+    $('#mousefield').css('height', imgheight + 'px');
 
     $('#myCanvas').attr("width" ,imgwidth + 'px');
     $('#myCanvas').attr("height", imgheight + 'px');
     
+    var scrolling = false;
     var mousemove = false;
     var mouse_x = -1;
     var mouse_y = -1;
@@ -323,6 +410,7 @@ $(document).ready(function() {
         $('#mouseh3')[0].innerText = ("mdown " + mouse_x);
     });
     $("#scrollbar").on("touchend mouseup", function(event) {
+
         if (!mousemove){return}
 
         event.preventDefault()
@@ -344,7 +432,7 @@ $(document).ready(function() {
         mouse_x = pos_x;
         mouse_y = pos_y;
         $('#mouseh3')[0].innerText = ("mup " + pos_y);
-        scroll(-move_y, 0);
+        //scroll(-move_y, 0);
 
         console.log(move_x + ";" + move_y);
         mousemove = false; 
@@ -352,20 +440,118 @@ $(document).ready(function() {
     });
     
     $("#scrollbar").on("touchmove mousemove", function(event) {
+        if (!mousemove) {return}
+        event.preventDefault();
+
+        if (Date.now() - last_scroll < 200){
+            return;
+        }
+
+        let pos_x = mouse_x;
+        let pos_y = mouse_y;
+
+        if (event.changedTouches){
+            touch = event.changedTouches[0]
+            pos_x = touch.pageX
+            pos_y = touch.pageY
+        }else{
+            pos_x = event.pageX;
+            pos_y = event.pageY;
+        }
+        const move_x = pos_x - mouse_x;
+        const move_y = pos_y - mouse_y;
+
+        if(Math.abs(move_x) > 5 || Math.abs(move_y) > 5){
+
+            console.log("touchmove");
+            scroll(move_y, 0);
+            screenshot();
+            last_scroll = Date.now();
+
+            mouse_x = pos_x;
+            mouse_y = pos_y;
+
+            $('#mouseh3')[0].innerText = ("move_y" + move_y);
+        }
+
     });
 
 
-    $(".imgscreenshot").on("mousedown", function(event) {
-        x = event.pageX - this.offsetLeft;
-        y = event.pageY - this.offsetTop;
-        console.log("mdown")
-            lastClick = Date.now()
-    });
-    $(".imgscreenshot").on("mouseup", function(event) {
-        console.log("mup")
-            if (((Date.now() - lastClick) / 1000) < minClickInterval){
-                click(x,y);
+    $("#mousefield").on("touchstart mousedown", function(event) {
+        x = event.pageX - $('#containerscreenshot')[0].offsetLeft;
+        y = event.pageY - $('#containerscreenshot')[0].offsetTop;
+        console.log("mdown" + x + ";" + y)
+        lastClick = Date.now();
+        mousemove = true;
+        setTimeout(function(){
+            if (mousemove) {
+                scrolling=true;
+                mouse_x = 0;
+                mouse_y = 0;
+
+                $("body").css("overscroll-behavior", "none");
             }
+        }, 200)
+    });
+    $("#mousefield").on("touchmove mousemove", function(event) {
+
+        if ( scrolling ){
+            event.preventDefault();
+            $('#mouseh3')[0].innerText = ("they see me scrolling");
+            mousemove = true;
+            $("#mousefield").css("touch-action", "none");
+
+            if (Date.now() - last_scroll < 200){
+                return;
+            }
+
+            let pos_x = mouse_x;
+            let pos_y = mouse_y;
+
+            if (event.changedTouches){
+                touch = event.changedTouches[0]
+                pos_x = touch.pageX
+                pos_y = touch.pageY
+            }else{
+                pos_x = event.pageX;
+                pos_y = event.pageY;
+            }
+
+            if ( (!mouse_x) && (!mouse_y) ){
+                mouse_x = pos_x;
+                mouse_y = pos_y;
+            }
+
+            const move_x = pos_x - mouse_x;
+            const move_y = pos_y - mouse_y;
+
+            if(Math.abs(move_x) > 5 || Math.abs(move_y) > 5){
+
+                console.log("touchmove");
+                scroll(move_y, -move_x);
+                screenshot();
+                last_scroll = Date.now();
+
+                mouse_x = pos_x;
+                mouse_y = pos_y;
+
+                $('#mouseh3')[0].innerText = ("move_y" + move_y);
+            }
+        }else{
+            $('#mouseh3')[0].innerText = ("nope");
+        }
+    })
+    $("#mousefield").on("touchend mouseup", function(event) {
+        console.log("mup");
+        scrolling = false;
+        $("#mousefield").css("touch-action", "auto");
+        $("body").css("overscroll-behavior", "auto");
+
+        mousemove = false;
+
+        if (((Date.now() - lastClick) / 1000) < minClickInterval){
+            click(x,y);
+        }
     });
 });
 </script>
@@ -396,6 +582,13 @@ $(document).ready(function() {
                 <button 
                  onclick="enterText()"
                  class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">search</i></button>
+                <button 
+                 onclick="copy()"
+                 class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">file_copy</i></button>
+<button 
+                 onclick="store()"
+                 class="btn btn-outline-secondary" type="button" id="button-addon2"><i class="material-icons icon">save</i></button>
+
             </div>
         </div>
     </div>
@@ -404,7 +597,8 @@ $(document).ready(function() {
         <div id="home" class="tab-pane active">
             <h3>QR</h3>
             <img src="/static/qr.jpeg" id="qr" alt="Italian Trulli">
-            <p>Some content.</p>
+            <ul class="list-group" id="bookmark-list">
+            </ul>
         </div>
         <div id="youtube" class="tab-pane fade">
             <h3>Youtube</h3>
@@ -426,8 +620,6 @@ $(document).ready(function() {
                 <button class="btn btn-danger flex-auto" onclick="simulate('f')">full</button>
                 <button class="btn btn-danger flex-auto" onclick="simulate('Escape')">ESC</button>
             </div>
-
-            <p>Some content in menu 1.</p>
         </div>
         <div id="netflix" class="tab-pane fade">
             <h3>Netflix</h3>
@@ -468,34 +660,27 @@ $(document).ready(function() {
                 </div>
             </div>
 
-            <div style="display:flex;margin-top:10px">
+            <div class="cinemabar">
 
-            <div id="scrollbar" style="width:100px;display:flex;justify-content: center;align-items:center;background:darkcyan;"><i class="material-icons">unfold_more</i></div>
+                <div id="scrollbar" style="width:100px;display:flex;justify-content: center;align-items:center;background:darkcyan;"><i class="material-icons">unfold_more</i></div>
 
-            <div id="containerscreenshot">
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot0" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot1" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot2" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot3" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot4" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot5" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot6" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot7" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot8" alt="Screenshot">      
-                <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot9" alt="Screenshot">      
-            </div>
+                <div id="containerscreenshot">
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot0" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot1" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot2" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot3" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot4" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot5" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot6" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot7" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot8" alt="Screenshot">      
+                    <img src="/static/shot.jpeg" class="imgscreenshot" style="display:none" id="imgscreenshot9" alt="Screenshot">      
+                    <div id="mousefield"></div>
+                </div>
             </div>
 
         </div>
     </div>
 </div>
-<select id="combobox1" class="combobox d-none">
-    <option></option>
-    <option value="PA">Pennsylvania</option>
-    <option value="CT">Connecticut</option>
-    <option value="NY">New York</option>
-    <option value="MD">Maryland</option>
-    <option value="VA">Virginia</option>
-</select>
     </body>
 </html>

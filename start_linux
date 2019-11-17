@@ -5,6 +5,7 @@ from flask_socketio import SocketIO, send, emit
 from tools.keysim import Sim 
 
 
+
 app = Flask(__name__)
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 socketio = SocketIO(app)
@@ -21,6 +22,8 @@ import base64
 from io import BytesIO
 import time
 from screenshot_optimization import _screenshot_linux_slim as screenshot
+import Xlib.threaded
+import clipboard
 
 
 
@@ -47,6 +50,69 @@ def click():
         
     return "received"
 
+@app.route("/copy")
+def copy():
+    
+    s.k.press_key(s.k.control_key)
+    s.k.press_key("c")
+
+    s.k.release_key(s.k.control_key)
+    s.k.release_key("c")
+        
+    return "copied to clipboard"
+
+@app.route("/visit", methods=["POST"])
+def visit():
+    link = (request.json)["link"]
+    clipboard.copy(link)
+    print(link)
+    s.k.press_key(s.k.control_key)
+    s.k.press_key("t")
+
+    s.k.release_key(s.k.control_key)
+    s.k.release_key("t")
+
+    copy()
+    
+    s.k.press_key(s.k.control_key)
+    s.k.press_key("v")
+
+    s.k.release_key(s.k.control_key)
+    s.k.release_key("v")
+
+    time.sleep(0.1)
+    s.k.tap_key("Return")
+        
+    return "visited"
+
+@app.route("/del", methods=["POST"])
+def del_bmark():
+    idx = int((request.json)["id"])
+    print(idx)
+    with open(os.path.join('static', "bookmarks.txt"), 'r') as fin:
+        data = fin.read().splitlines(True)
+    data.pop(idx)
+    print(data)
+    
+    with open(os.path.join('static', "bookmarks.txt"), 'w') as fout:
+        fout.writelines(data)
+    return "success"
+
+@app.route("/bmarks")
+def bmarks():
+    with open(os.path.join("static", "bookmarks.txt"), "r") as myfile:
+        text = myfile.read()
+    marks = text.splitlines(True)
+    return jsonify(bookmarks= marks)
+
+@app.route("/store")
+def store():
+    print("[store] bmark")
+    bookmark = clipboard.paste()
+    with open(os.path.join("static", "bookmarks.txt"), "a") as myfile:
+        myfile.write("\n" + bookmark)
+    return "copied to clipboard"
+
 @app.route("/scroll", methods=["POST"])
 def scroll():
 
@@ -60,8 +126,6 @@ def scroll():
     s.m.scroll(posy, posx)
         
     return "received"
-
-
 
 @app.route("/simulate", methods=["POST"])
 def simulate():
@@ -104,6 +168,7 @@ def handle_connect():
 def handle_message(message):
     print('received message: ' + message)
     send ( "what", broadcast=True )
+
 
 import threading
 stream_timer = None
